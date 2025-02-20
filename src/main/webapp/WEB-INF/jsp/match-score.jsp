@@ -4,7 +4,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Матч</title>
+    <title>Match</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -52,7 +52,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>Матч</h1>
+    <h1>Match</h1>
     <table>
         <thead>
         <tr>

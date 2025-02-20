@@ -1,6 +1,10 @@
 package com.timerg.service;
 
+import com.timerg.dto.MatchReadDto;
 import com.timerg.dto.PlayerCreateDto;
+import com.timerg.entity.MatchEntity;
+import com.timerg.entity.PlayerEntity;
+import com.timerg.mapper.MatchEntityToReadMapper;
 import com.timerg.mapper.PlayerEntityToReadMapper;
 import com.timerg.dto.PlayerReadDto;
 import com.timerg.mapper.PlayerCreateToEntityMapper;
@@ -14,6 +18,8 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -23,6 +29,7 @@ public class PlayerService {
     private final SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
     private final PlayerCreateToEntityMapper playerCreateToEntityMapper = PlayerCreateToEntityMapper.getInstance();
     private final PlayerEntityToReadMapper playerEntityToReadMapper = PlayerEntityToReadMapper.getInstance();
+    private final MatchEntityToReadMapper matchEntityToReadMapper = MatchEntityToReadMapper.getInstance();
 
     public PlayerReadDto save(PlayerCreateDto playerCreateDto) {
         // validation будет в сервлете
@@ -72,6 +79,43 @@ public class PlayerService {
             } else {
                 return Optional.empty();
             }
+
+        } catch (Exception e) {
+            tx.rollback();
+            log.error("PlayerService, findByName() error: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    public List<MatchReadDto> findBySimilarName(String similarName) {
+        Session session = sessionFactory.getCurrentSession();
+
+        Transaction tx = session.beginTransaction();
+
+        try {
+            PlayerRepository playerRepository = new PlayerRepository(session);
+            List<PlayerEntity> listSimilarName = playerRepository.findBySimilarName(similarName);
+
+            List<MatchEntity> matches = new ArrayList<>();;
+            for (PlayerEntity playerEntity : listSimilarName) {
+                List<MatchEntity> firstMatches = playerEntity.getMatchesAsFirstPlayer();
+                if (firstMatches != null) {
+                    matches.addAll(firstMatches);
+                }
+
+                List<MatchEntity> secondMatches = playerEntity.getMatchesAsSecondPlayer();
+                if (secondMatches != null) {
+                    matches.addAll(secondMatches);
+                }
+            }
+
+            List<MatchReadDto> matchesReadDto = matches.stream()
+                    .map(matchEntityToReadMapper::from)
+                    .toList();
+
+            tx.commit();
+
+            return matchesReadDto;
 
         } catch (Exception e) {
             tx.rollback();

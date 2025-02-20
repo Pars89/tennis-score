@@ -44,4 +44,16 @@ public abstract class BaseRepository<K extends Serializable, E> implements Repos
                 .getResultList();
         return entities;
     }
+    public List<E> findAll(int limit, int offset) {
+        List<E> entities = session.createQuery("SELECT e FROM " + clazz.getSimpleName() + " e", clazz)
+                .setMaxResults(limit)
+                .setFirstResult(offset)
+                .getResultList();
+        return entities;
+    }
+
+    public Long countAll() {
+        return session.createQuery("SELECT COUNT(e) FROM " + clazz.getSimpleName() + " e", Long.class)
+                .getSingleResult();
+    }
 }

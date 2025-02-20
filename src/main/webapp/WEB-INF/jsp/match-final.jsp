@@ -3,7 +3,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title> Final score</title>
+    <title> Final score </title>
     <style>
         body {
             font-family: Arial, sans-serif;

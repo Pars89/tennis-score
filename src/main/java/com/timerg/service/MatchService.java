@@ -21,10 +21,14 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 
 @Slf4j
@@ -58,6 +62,111 @@ public class MatchService {
         } catch (Exception e) {
             tx.rollback();
             log.error("MatchService, save() error: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    public List<MatchReadDto> findAll() {
+        Session session = sessionFactory.getCurrentSession();
+
+        Transaction tx = session.beginTransaction();
+
+        try {
+
+            MatchRepository matchRepository = new MatchRepository(session);
+
+            List<MatchEntity> matches = matchRepository.findAll();
+
+            List<MatchReadDto> matchesReadDto = matches.stream()
+                    .map(matchEntityToReadMapper::from)
+                    .toList();
+
+            tx.commit();
+
+            return matchesReadDto;
+
+        } catch (Exception e) {
+            tx.rollback();
+            log.error("MatchService, findAll() error: " + e.getMessage());
+            throw e;
+        }
+    }
+    public List<MatchReadDto> findMatchesBySimilarName(String filterByName, int page, Integer pageSize) {
+        int offset = (page - 1) * pageSize;
+        Session session = sessionFactory.getCurrentSession();
+        Transaction tx = session.beginTransaction();
+        try {
+            MatchRepository matchRepository = new MatchRepository(session);
+            List<MatchEntity> matches = matchRepository.findAll(filterByName, pageSize, offset);
+            List<MatchReadDto> matchesReadDto = matches.stream()
+                    .map(matchEntityToReadMapper::from)
+                    .toList();
+            tx.commit();
+            return matchesReadDto;
+        } catch (Exception e) {
+            tx.rollback();
+            log.error("MatchService, findAll(page, pageSize) error: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    public List<MatchReadDto> findAll(int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        Session session = sessionFactory.getCurrentSession();
+        Transaction tx = session.beginTransaction();
+        try {
+            MatchRepository matchRepository = new MatchRepository(session);
+            List<MatchEntity> matches = matchRepository.findAll(pageSize, offset);
+            List<MatchReadDto> matchesReadDto = matches.stream()
+                    .map(matchEntityToReadMapper::from)
+                    .toList();
+            tx.commit();
+            return matchesReadDto;
+        } catch (Exception e) {
+            tx.rollback();
+            log.error("MatchService, findAll(page, pageSize) error: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    public int countMatchesBySimilarName(String filterByName) {
+        Session session = sessionFactory.getCurrentSession();
+
+        Transaction tx = session.beginTransaction();
+
+        try {
+            MatchRepository matchRepository = new MatchRepository(session);
+
+            Long countAllMatches = matchRepository.countAll(filterByName);
+
+            tx.commit();
+
+            return countAllMatches.intValue();
+
+        } catch (Exception e) {
+            tx.rollback();
+            log.error("MatchService, findLimitedPlayersWithOffset() error: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    public int countAllMatches() {
+        Session session = sessionFactory.getCurrentSession();
+
+        Transaction tx = session.beginTransaction();
+
+        try {
+            MatchRepository matchRepository = new MatchRepository(session);
+
+            Long countAllMatches = matchRepository.countAll();
+
+            tx.commit();
+
+            return countAllMatches.intValue();
+
+        } catch (Exception e) {
+            tx.rollback();
+            log.error("MatchService, findLimitedPlayersWithOffset() error: " + e.getMessage());
             throw e;
         }
     }

@@ -5,13 +5,13 @@
 </head>
 <body>
     <a href="new-match">
-        <button type="button">Создать новый матч</button>
+        <button type="button">Create new match</button>
     </a>
 
     <br> <br>
 
     <a href="matches">
-        <button type="button">Список завершенных матчей</button>
+        <button type="button">List completed matches</button>
     </a>
 
 </body>

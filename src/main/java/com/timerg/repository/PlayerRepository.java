@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import org.hibernate.Session;
 
+import java.util.List;
 import java.util.Optional;
 
 public class PlayerRepository extends BaseRepository<Long, PlayerEntity>{
@@ -21,5 +22,12 @@ public class PlayerRepository extends BaseRepository<Long, PlayerEntity>{
         } catch (NoResultException e) {
             return Optional.empty();
         }
+    }
+
+    public List<PlayerEntity> findBySimilarName(String playerName) {
+        return session.createQuery(
+                        "SELECT p FROM PlayerEntity p WHERE p.name LIKE :name", PlayerEntity.class)
+                .setParameter("name", "%" + playerName + "%")
+                .getResultList();
     }
 }
