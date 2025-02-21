@@ -1,7 +1,5 @@
 package com.timerg.servlet;
 
-import com.timerg.dto.MatchCreateDto;
-import com.timerg.entity.TennisGame;
 import com.timerg.exception.PlayerNameLengthException;
 import com.timerg.dto.PlayerReadDto;
 import com.timerg.exception.PlayerPlayingAgainstSelfException;
@@ -17,20 +15,17 @@ import lombok.extern.slf4j.Slf4j;
 import com.timerg.dto.PlayerCreateDto;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 
 @Slf4j
 @WebServlet(value = "/new-match")
 public class NewMatchServlet extends HttpServlet {
     private final PlayerService playerService = PlayerService.getInstance();
     private final PlayerNameValidator playerNameValidator = PlayerNameValidator.getInstance();
-    private final ConcurrentMap<UUID, TennisGame> currentMatches = MatchService.getCurrentMatches();
+    private final MatchService matchService = MatchService.getInstance();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // При необходимости можно подготовить данные для отображения
         request.getRequestDispatcher(JspHelper.getPath("new-match"))
                 .forward(request, response);
     }
@@ -56,22 +51,13 @@ public class NewMatchServlet extends HttpServlet {
             var playerDto1 = PlayerCreateDto.builder().name(playerName1).build();
             var playerDto2 = PlayerCreateDto.builder().name(playerName2).build();
 
-            Optional<PlayerReadDto> foundedPlayerDto1 = playerService.findByName(playerDto1);
-            PlayerReadDto playerReadDto1 = foundedPlayerDto1.orElseGet(() -> playerService.save(playerDto1));
+            PlayerReadDto playerReadDto1 = playerService.getOrCreatePlayer(playerDto1);
+            PlayerReadDto playerReadDto2 = playerService.getOrCreatePlayer(playerDto2);
 
-            Optional<PlayerReadDto> foundedPlayerDto2 = playerService.findByName(playerDto2);
-            PlayerReadDto playerReadDto2 = foundedPlayerDto2.orElseGet(() -> playerService.save(playerDto2));
-
-            TennisGame tennisGame = TennisGame.builder()
-                    .firstPlayer(playerReadDto1)
-                    .secondPlayer(playerReadDto2)
-                    .build();
-            UUID uuid = UUID.randomUUID();
-
-            currentMatches.put(uuid, tennisGame);
+            // Так как я планирую добавить новый сервис OnGoingMatch, то здесь не будет matchService
+            UUID uuid = matchService.createNewMatch(playerReadDto1, playerReadDto2);
 
             response.sendRedirect(request.getContextPath() + "/match-score?uuid=" + uuid);
-//            response.getWriter().write("Player created: " + playerReadDto1 + " " + playerReadDto2);
 
         } catch (PlayerNameLengthException e) {
             log.error("NewMatchServlet, doPost() error: " + e.getMessage());

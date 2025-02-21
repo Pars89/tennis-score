@@ -3,6 +3,8 @@ package com.timerg.servlet;
 import com.timerg.dto.MatchCreateDto;
 import com.timerg.entity.StatusGame;
 import com.timerg.entity.TennisGame;
+import com.timerg.exception.MatchNotFoundException;
+import com.timerg.exception.PlayerWinnerNotFoundException;
 import com.timerg.service.MatchService;
 import com.timerg.util.JspHelper;
 import jakarta.servlet.ServletException;
@@ -19,99 +21,68 @@ import java.util.concurrent.ConcurrentMap;
 @Slf4j
 @WebServlet("/match-score")
 public class MatchScoreServlet extends HttpServlet {
-    private final ConcurrentMap<UUID, TennisGame> currentMatches = MatchService.getCurrentMatches();
     private final MatchService matchService = MatchService.getInstance();
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String uuidParam = req.getParameter("uuid");
-        if (uuidParam == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Не указан параметр uuid");
-            return;
-        }
 
-        UUID matchUUID = UUID.fromString(uuidParam);
-        TennisGame tennisGame = currentMatches.get(matchUUID);
+        try {
+            // validation uuidParam
 
-        if (tennisGame == null) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Match not found");
-            return;
-        }
+            // Поменять на OnGoingMatchService
+            TennisGame tennisGame = matchService.getTennisGame(uuidParam);
 
-        if (isWinner(tennisGame.getStatusGame())) {
-            // Удаляем матч из коллекции текущих матчей
-            currentMatches.remove(matchUUID);
-            // Записываем законченный матч в SQL базу данных
-            MatchCreateDto matchCreateDto = MatchCreateDto.builder()
-                    .firstPlayerReadDto(tennisGame.getFirstPlayer())
-                    .secondPlayerReadDto(tennisGame.getSecondPlayer())
-                    .winnerPlayerReadDto(tennisGame.getWinnerPlayer())
-                    .build();
+            req.setAttribute("tennisGame", tennisGame);
 
-            matchService.save(matchCreateDto);
-
-            // Рендерим финальный счёт
-            req.setAttribute("playerName1", tennisGame.getFirstPlayer().getName());
-            req.setAttribute("playerName2", tennisGame.getSecondPlayer().getName());
-            req.setAttribute("sets1", tennisGame.getFirstSets());
-            req.setAttribute("sets2", tennisGame.getSecondSets());
-            req.setAttribute("games1", tennisGame.getFirstGames());
-            req.setAttribute("games2", tennisGame.getSecondGames());
-            req.setAttribute("points1", tennisGame.getFirstPoint());
-            req.setAttribute("points2", tennisGame.getSecondPoint());
-            req.setAttribute("winner",
-                    tennisGame.getStatusGame() == StatusGame.FIRST_WINNER
-                            ? tennisGame.getFirstPlayer().getName()
-                            : tennisGame.getSecondPlayer().getName()
-            );
-
-            // Перенаправляем на страницу финального счета
-            req.getRequestDispatcher(JspHelper.getPath("match-final"))
+            req.getRequestDispatcher(JspHelper.getPath("match-score"))
                     .forward(req, resp);
-            return;
-
-        } else {
-            req.setAttribute("playerName1", tennisGame.getFirstPlayer().getName());
-            req.setAttribute("sets1", tennisGame.getFirstSets());
-            req.setAttribute("games1", tennisGame.getFirstGames());
-            req.setAttribute("points1", tennisGame.getFirstPoint());
-            req.setAttribute("player1Id", tennisGame.getFirstPlayer().getId());
-
-            req.setAttribute("playerName2", tennisGame.getSecondPlayer().getName());
-            req.setAttribute("sets2", tennisGame.getSecondSets());
-            req.setAttribute("games2", tennisGame.getSecondGames());
-            req.setAttribute("points2", tennisGame.getSecondPoint());
-            req.setAttribute("player2Id", tennisGame.getSecondPlayer().getId());
+        } catch (MatchNotFoundException e) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Error: match not found");
         }
-
-        req.getRequestDispatcher(JspHelper.getPath("match-score"))
-                .forward(req, resp);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
-        String uuid = req.getParameter("uuid");
-        TennisGame tennisGame = currentMatches.get(UUID.fromString(uuid));
-
-        if (tennisGame == null) {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Match not found");
-            return;
-        }
-
+        String uuidParam = req.getParameter("uuid");
         String winnerId = req.getParameter("winnerId");
 
-        if (winnerId.equals(String.valueOf(tennisGame.getFirstPlayer().getId()))) {
-            tennisGame.addPointFirstPlayer();
-        } else if (winnerId.equals(String.valueOf(tennisGame.getSecondPlayer().getId()))){
-            tennisGame.addPointSecondPlayer();
-        } else {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Неверный идентификатор игрока");
-            return;
-        }
-        resp.sendRedirect(req.getContextPath() + "/match-score?uuid=" + uuid);
-    }
+        try {
+            // validation uuidParam и winnerId
 
-    private boolean isWinner(StatusGame statusGame) {
-        return !StatusGame.ONGOING.equals(statusGame);
+            matchService.addPointWinner(uuidParam, winnerId);
+
+            if(matchService.checkWinner(uuidParam)) {
+                // For final rendering
+                TennisGame tennisGame = matchService.getTennisGame(uuidParam);
+                // Мне кажется нужно добавить новый сервис для текущих матчей
+                // Чтобы не смешивать matchService и OnGoingMatchService
+                // Удаляем матч из коллекции текущих матчей
+                matchService.getCurrentMatches().remove(uuidParam); // потом удалить
+                // Записываем законченный матч в SQL базу данных
+                MatchCreateDto matchCreateDto = MatchCreateDto.builder()
+                        .firstPlayerReadDto(tennisGame.getFirstPlayer())
+                        .secondPlayerReadDto(tennisGame.getSecondPlayer())
+                        .winnerPlayerReadDto(tennisGame.getWinnerPlayer())
+                        .build();
+
+                matchService.save(matchCreateDto);
+
+                // Рендерим финальный счёт
+                req.setAttribute("tennisGame", tennisGame);
+
+                // Перенаправляем на страницу финального счета
+                req.getRequestDispatcher(JspHelper.getPath("match-final"))
+                        .forward(req, resp);
+                return;
+            } else {
+                resp.sendRedirect(req.getContextPath() + "/match-score?uuid=" + uuidParam);
+            }
+
+        } catch (MatchNotFoundException e) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Error: match not found");
+        } catch (PlayerWinnerNotFoundException e) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Error: player winner not found");
+        }
     }
 }

@@ -64,65 +64,56 @@
         </tr>
         </thead>
         <tbody>
+        <!-- Данные для первого игрока -->
         <tr>
             <td>
-                <c:if test="${not empty playerName1}">
-                    ${playerName1}
+                <c:if test="${not empty tennisGame.firstPlayer}">
+                    ${tennisGame.firstPlayer.name}
                 </c:if>
             </td>
             <td>
-                <c:if test="${not empty sets1}">
-                    ${sets1}
-                </c:if>
+                ${tennisGame.firstSets}
             </td>
             <td>
-                <c:if test="${not empty games1}">
-                    ${games1}
-                </c:if>
+                ${tennisGame.firstGames}
             </td>
             <td>
-                <c:if test="${not empty points1}">
-                    ${points1}
-                </c:if>
+                ${tennisGame.firstPoint}
             </td>
             <td>
                 <form method="post" action="${pageContext.request.contextPath}/match-score?uuid=${param.uuid}">
-                    <!-- Передаем идентификатор первого игрока (например, его id или просто строку "first") -->
-                    <input type="hidden" name="winnerId" value="${player1Id}">
+                    <input type="hidden" name="winnerId" value="${tennisGame.firstPlayer.id}">
                     <button type="submit" class="score-button">Score</button>
                 </form>
             </td>
         </tr>
+        <!-- Данные для второго игрока -->
         <tr>
             <td>
-                <c:if test="${not empty playerName2}">
-                    ${playerName2}
+                <c:if test="${not empty tennisGame.secondPlayer}">
+                    ${tennisGame.secondPlayer.name}
                 </c:if>
             </td>
             <td>
-                <c:if test="${not empty sets2}">
-                    ${sets2}
-                </c:if>
+                ${tennisGame.secondSets}
             </td>
             <td>
-                <c:if test="${not empty games2}">
-                    ${games2}
-                </c:if>
+                ${tennisGame.secondGames}
             </td>
             <td>
-                <c:if test="${not empty points2}">
-                    ${points2}
-                </c:if>
+                ${tennisGame.secondPoint}
             </td>
             <td>
                 <form method="post" action="${pageContext.request.contextPath}/match-score?uuid=${param.uuid}">
-                    <input type="hidden" name="winnerId" value="${player2Id}">
+                    <input type="hidden" name="winnerId" value="${tennisGame.secondPlayer.id}">
                     <button type="submit" class="score-button">Score</button>
                 </form>
             </td>
         </tr>
         </tbody>
     </table>
+
+
 </div>
 </body>
 </html>

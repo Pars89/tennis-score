@@ -31,9 +31,18 @@ public class PlayerService {
     private final PlayerEntityToReadMapper playerEntityToReadMapper = PlayerEntityToReadMapper.getInstance();
     private final MatchEntityToReadMapper matchEntityToReadMapper = MatchEntityToReadMapper.getInstance();
 
-    public PlayerReadDto save(PlayerCreateDto playerCreateDto) {
-        // validation будет в сервлете
+    public PlayerReadDto getOrCreatePlayer(PlayerCreateDto playerCreateDto) {
 
+        Optional<PlayerReadDto> playerReadDto = findByName(playerCreateDto);
+        if (playerReadDto.isPresent()) {
+            return playerReadDto.get();
+        } else {
+            PlayerReadDto savedPlayerReadDto = save(playerCreateDto);
+            return savedPlayerReadDto;
+        }
+    }
+
+    public PlayerReadDto save(PlayerCreateDto playerCreateDto) {
         Session session = HibernateUtil.getSessionFactory().getCurrentSession();
 
         Transaction tx = session.beginTransaction();
@@ -57,8 +66,6 @@ public class PlayerService {
     }
 
     public Optional<PlayerReadDto> findByName(PlayerCreateDto playerCreateDto) {
-        // validation будет в сервлете
-
         Session session = sessionFactory.getCurrentSession();
 
         Transaction tx = session.beginTransaction();
@@ -86,44 +93,6 @@ public class PlayerService {
             throw e;
         }
     }
-
-    public List<MatchReadDto> findBySimilarName(String similarName) {
-        Session session = sessionFactory.getCurrentSession();
-
-        Transaction tx = session.beginTransaction();
-
-        try {
-            PlayerRepository playerRepository = new PlayerRepository(session);
-            List<PlayerEntity> listSimilarName = playerRepository.findBySimilarName(similarName);
-
-            List<MatchEntity> matches = new ArrayList<>();;
-            for (PlayerEntity playerEntity : listSimilarName) {
-                List<MatchEntity> firstMatches = playerEntity.getMatchesAsFirstPlayer();
-                if (firstMatches != null) {
-                    matches.addAll(firstMatches);
-                }
-
-                List<MatchEntity> secondMatches = playerEntity.getMatchesAsSecondPlayer();
-                if (secondMatches != null) {
-                    matches.addAll(secondMatches);
-                }
-            }
-
-            List<MatchReadDto> matchesReadDto = matches.stream()
-                    .map(matchEntityToReadMapper::from)
-                    .toList();
-
-            tx.commit();
-
-            return matchesReadDto;
-
-        } catch (Exception e) {
-            tx.rollback();
-            log.error("PlayerService, findByName() error: " + e.getMessage());
-            throw e;
-        }
-    }
-
     public static PlayerService getInstance() {
         return INSTANCE;
     }

@@ -1,4 +1,5 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ include file="/WEB-INF/jsp/header.jsp" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,7 +40,8 @@
 <body>
 <div class="container">
     <h1>Match completed</h1>
-    <h2>Winner: ${winner}</h2>
+    <h2>Winner: ${tennisGame.winnerPlayer.name}</h2>
+
     <table>
         <thead>
         <tr>
@@ -50,17 +52,19 @@
         </tr>
         </thead>
         <tbody>
+        <!-- Данные первого игрока -->
         <tr>
-            <td>${playerName1}</td>
-            <td>${sets1}</td>
-            <td>${games1}</td>
-            <td>${points1}</td>
+            <td>${tennisGame.firstPlayer.name}</td>
+            <td>${tennisGame.firstSets}</td>
+            <td>${tennisGame.firstGames}</td>
+            <td>${tennisGame.firstPoint}</td>
         </tr>
+        <!-- Данные второго игрока -->
         <tr>
-            <td>${playerName2}</td>
-            <td>${sets2}</td>
-            <td>${games2}</td>
-            <td>${points2}</td>
+            <td>${tennisGame.secondPlayer.name}</td>
+            <td>${tennisGame.secondSets}</td>
+            <td>${tennisGame.secondGames}</td>
+            <td>${tennisGame.secondPoint}</td>
         </tr>
         </tbody>
     </table>
